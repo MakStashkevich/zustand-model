@@ -1,6 +1,6 @@
 {
   "name": "@makstashkevich/zustand-model",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A lightweight and powerful Zustand plugin for simplified asynchronous API state management in React. Eliminates boilerplate for loading, error, and data handling, offering a clean, provider-less solution with built-in caching.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

@@ -6,7 +6,7 @@
 
 Хочу рассказать тебе про свою новую библиотеку [`@makstashkevich/zustand-model`](https://www.npmjs.com/package/@makstashkevich/zustand-model).
 
-Это такой небольшой, но очень крутой плагин для [Zustand](https://zustand-bear.github.io/zustand/), который помогает навести порядок в работе с асинхронными данными, особенно с API-запросами.
+Это такой небольшой, но очень крутой плагин для [Zustand](https://zustand-bear.github.io/zustand/), который помогает навести порядок в работе как с асинхронными данными (особенно с API-запросами), так и с обычным синхронным состоянием.
 
 ## Зачем я это вообще сделал?
 
@@ -22,6 +22,7 @@
 *   **Меньше кода:** Забудь про ручное отслеживание `loading` и `error` для каждого запроса. Плагин делает это за тебя.
 *   **Чистота:** Никаких лишних провайдеров! Все работает на базе Zustand, а значит, состояние доступно глобально, но при этом структурировано.
 *   **Удобство:** Легко получать данные, состояния загрузки и ошибки прямо в компонентах.
+*   **Гибкость:** Поддерживает как асинхронные, так и синхронные действия, что делает его универсальным решением для любого типа состояния.
 *   **Кэширование:** Есть встроенный механизм для отслеживания "свежести" данных, что очень удобно для кэширования.
 
 ## Как это установить?
@@ -43,7 +44,7 @@ yarn add @makstashkevich/zustand-model zustand
 Сначала мы определяем, какие данные у нас будут храниться (`IPageModelDataState`) и какие асинхронные действия мы можем выполнять (`IPageModelActions`).
 
 ```typescript
-import { IBaseModelState, createModel, createFreshnessHook } from '@makstashkevich/zustand-model';
+import { IBaseModelState, IBaseModelActions, createModel, createFreshnessHook } from '@makstashkevich/zustand-model';
 
 // Предположим, у нас есть такие типы и сервисы API
 interface PageSchema {
@@ -59,7 +60,7 @@ interface IPageModelDataState {
   popularPages: PageSchema[] | null;
 }
 
-interface IPageModelActions {
+interface IPageModelActions extends IBaseModelActions {
   getPage: (pathname: string) => Promise<Partial<IPageModelDataState>>;
   // ... другие действия
 }
@@ -229,6 +230,96 @@ export default PageActions;
 ```
 
 Как видишь, все очень интуитивно и требует минимум кода. Надеюсь, тебе понравится!
+
+### 5. Работа с синхронным состоянием: Модальные окна
+
+Плагин отлично подходит не только для асинхронных операций, но и для управления обычным синхронным состоянием. Давай посмотрим, как легко можно управлять модальными окнами.
+
+```typescript
+import { IBaseModelState, IBaseModelActions, createModel } from '@makstashkevich/zustand-model';
+
+// Определяем типы модальных окон
+enum ModalType {
+  LOGIN = 'LOGIN',
+  REGISTER = 'REGISTER',
+  SETTINGS = 'SETTINGS',
+}
+
+// Состояние для модальных окон
+interface IModalModelDataState {
+  currentModal: ModalType | null;
+}
+
+// Действия для модальных окон (синхронные!)
+interface IModalModelActions extends IBaseModelActions {
+  openModal: (modalType: ModalType) => Partial<IModalModelDataState>;
+  closeModal: () => Partial<IModalModelDataState>;
+}
+
+export type IModalModelState = IModalModelDataState & IModalModelActions & IBaseModelState<IModalModelActions>;
+
+const initialDataState: IModalModelDataState = {
+  currentModal: null,
+};
+
+// Синхронные действия
+const actions: IModalModelActions = {
+  openModal: (modalType) => {
+    return { currentModal: modalType };
+  },
+  closeModal: () => {
+    return { currentModal: null };
+  },
+};
+
+export const useModalModel = createModel<IModalModelDataState, IModalModelActions>(
+  initialDataState,
+  actions,
+);
+
+// Для удобства экспортируем действия
+export const openModal = (modalType: ModalType) => useModalModel.getState().openModal(modalType);
+export const closeModal = () => useModalModel.getState().closeModal();
+```
+
+А вот как это использовать в компоненте:
+
+```typescript jsx
+import React from 'react';
+import { useModalModel, openModal, closeModal } from './modalModel'; // Импортируем модель и действия
+
+function App() {
+  const currentModal = useModalModel.use.currentModal(); // Получаем текущую открытую модалку
+
+  return (
+    <div>
+      <h1>Мое приложение</h1>
+      <button onClick={() => openModal(ModalType.LOGIN)}>Открыть логин</button>
+      <button onClick={() => openModal(ModalType.SETTINGS)}>Открыть настройки</button>
+
+      {currentModal === ModalType.LOGIN && (
+        <div className="modal">
+          <h2>Вход</h2>
+          <p>Форма входа...</p>
+          <button onClick={closeModal}>Закрыть</button>
+        </div>
+      )}
+
+      {currentModal === ModalType.SETTINGS && (
+        <div className="modal">
+          <h2>Настройки</h2>
+          <p>Настройки приложения...</p>
+          <button onClick={closeModal}>Закрыть</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App;
+```
+
+Как видишь, управление модальными окнами становится очень простым и централизованным!
 
 ## Ссылки
 
